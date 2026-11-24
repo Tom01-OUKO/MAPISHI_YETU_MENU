@@ -1,0 +1,579 @@
+Here is the fully updated `index.html` file. I have replaced the dummy `orderMeal()` function with the real one that connects to your Node.js backend.
+
+### ⚠️ Important Instructions Before You Save:
+1. **Backend URL:** In the new `orderMeal()` function, I put `http://localhost:5000/api/stkpush`. This will work **only if you are testing on the same computer**. If you are testing from your phone or have deployed to Render, change this to your Ngrok URL or Render URL.
+2. **Test Phone Number:** The Safaricom Sandbox uses a fake test number (`254708374149`). You **must** use this number when prompted, or the sandbox will throw an error. 
+
+Here is the complete, updated code. Copy and replace your entire `index.html` with this:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapishi Yetu | Premium Kenyan Food Delivery</title>
+    <!-- Import Google Font for a more premium look -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Import FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* --- CSS Variables & Reset --- */
+        :root {
+            --primary: #0F766E; /* Deep Teal - Professional & Appetizing */
+            --primary-light: #14B8A6;
+            --secondary: #EA580C; /* Vibrant Orange for prices */
+            --bg: #F8FAFC; /* Very light cool gray */
+            --surface: #FFFFFF;
+            --text-dark: #0F172A;
+            --text-muted: #64748B;
+            --radius-sm: 8px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text-dark);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- Header --- */
+        header {
+            background: var(--surface);
+            padding: 20px 15px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+        header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+        header p {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* --- Search Bar --- */
+        .search-container {
+            padding: 20px 15px;
+            background: var(--surface);
+            position: sticky;
+            top: 85px; /* Adjust based on header height */
+            z-index: 99;
+            box-shadow: 0 4px 6px -6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+        }
+        
+        .search-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .search-container input {
+            flex: 1;
+            padding: 16px 16px 16px 48px; /* Space for icon */
+            border: 2px solid #E2E8F0;
+            border-radius: 50px;
+            font-size: 16px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.3s ease;
+            background: var(--bg);
+        }
+        .search-container input:focus {
+            border-color: var(--primary-light);
+            background: var(--surface);
+            box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.15);
+        }
+        
+        .search-container button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0 32px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .search-container button:hover { background: var(--primary-light); }
+        .search-container button:active { transform: scale(0.97); }
+
+        /* --- Status Messages & Loader --- */
+        #status-msg {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-weight: 400;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        .spinner {
+            border: 4px solid #E2E8F0;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- Meal Grid --- */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 24px;
+            padding: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* --- Meal Cards --- */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        .card-img-wrapper {
+            width: 100%;
+            height: 160px;
+            overflow: hidden;
+            background: #E2E8F0; /* Placeholder color */
+        }
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        .card:hover img { transform: scale(1.05); }
+        
+        .card-content {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-dark);
+        }
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+        }
+        .card-price {
+            color: var(--secondary);
+            font-weight: 800;
+            font-size: 18px;
+        }
+        .card-area {
+            font-size: 13px;
+            color: var(--text-muted);
+            background: var(--bg);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        /* --- Modal Styles --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px); /* Premium blur effect */
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        
+        .modal-content {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+
+        /* Hide scrollbar for cleaner look */
+        .modal-content::-webkit-scrollbar { width: 8px; }
+        .modal-content::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .modal-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .close-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .close-btn:hover { background: rgba(15, 23, 42, 0.9); }
+
+        .modal-img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+        }
+        .modal-body { padding: 24px; }
+        
+        .modal-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 16px;
+        }
+        .modal-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-dark);
+            line-height: 1.2;
+        }
+        .modal-price {
+            color: var(--secondary);
+            font-size: 22px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        
+        .modal-section-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 24px 0 12px;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 13px;
+        }
+        
+        .modal-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 15px;
+            color: var(--text-muted);
+        }
+        .modal-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #F1F5F9;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .modal-list li::before {
+            content: "•";
+            color: var(--primary-light);
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        .modal-instructions {
+            font-size: 15px;
+            line-height: 1.7;
+            color: var(--text-muted);
+            white-space: pre-line;
+        }
+
+        .order-btn {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 18px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 18px;
+            font-weight: 700;
+            font-family: inherit;
+            margin-top: 30px;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: background 0.2s, transform 0.1s;
+        }
+        .order-btn:hover { background: var(--primary-light); }
+        .order-btn:active { transform: scale(0.98); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Mapishi Yetu</h1>
+        <p>Authentic Kenyan Flavors, Delivered</p>
+    </header>
+
+    <div class="search-container">
+        <div class="search-wrapper">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="searchInput" placeholder="Search meals (e.g., Chicken, Beef, Pasta)" value="Chicken">
+            <button onclick="performSearch()">Search</button>
+        </div>
+    </div>
+
+    <div id="status-msg">
+        <div class="spinner"></div>
+        Loading delicious meals...
+    </div>
+    <div class="grid" id="mealGrid"></div>
+
+    <!-- Modal for Meal Details -->
+    <div class="modal-overlay" id="mealModal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+            <img id="modalImg" class="modal-img" src="" alt="Meal">
+            <div class="modal-body">
+                <div class="modal-header-row">
+                    <h2 id="modalTitle" class="modal-title"></h2>
+                    <div id="modalPrice" class="modal-price"></div>
+                </div>
+                
+                <div class="modal-section-title">Ingredients</div>
+                <ul id="modalIngredients" class="modal-list"></ul>
+                
+                <div class="modal-section-title">Instructions</div>
+                <p id="modalInstructions" class="modal-instructions"></p>
+                
+                <button class="order-btn" onclick="orderMeal()">
+                    <i class="fa-solid fa-bag-shopping"></i> Order Now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- JavaScript Logic ---
+        const API_BASE = "https://www.themealdb.com/api/json/v1/1/";
+        const mealGrid = document.getElementById('mealGrid');
+        const statusMsg = document.getElementById('status-msg');
+        const modalOverlay = document.getElementById('mealModal');
+        let currentMeal = null;
+
+        function calculatePrice(id) {
+            return (parseInt(id) * 15) + 150;
+        }
+
+        function formatKsh(amount) {
+            return "KSh " + amount.toLocaleString();
+        }
+
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+
+            statusMsg.style.display = 'flex';
+            statusMsg.innerHTML = '<div class="spinner"></div> Searching for ' + query + '...';
+            mealGrid.innerHTML = ''; 
+
+            try {
+                const response = await fetch(`${API_BASE}search.php?s=${query}`);
+                const data = await response.json();
+
+                if (!data.meals) {
+                    statusMsg.innerHTML = "No meals found. Try searching for 'Chicken' or 'Beef'.";
+                    return;
+                }
+
+                statusMsg.style.display = 'none';
+                renderMeals(data.meals);
+
+            } catch (error) {
+                console.error("API Error:", error);
+                statusMsg.innerHTML = "Error connecting to the kitchen. Please check your internet.";
+            }
+        }
+
+        function renderMeals(meals) {
+            meals.forEach(meal => {
+                const price = calculatePrice(meal.idMeal);
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.onclick = () => openModal(meal);
+
+                card.innerHTML = `
+                    <div class="card-img-wrapper">
+                        <img src="${meal.strMealThumb}/preview" alt="${meal.strMeal}" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <p class="card-title">${meal.strMeal}</p>
+                        <div class="card-meta">
+                            <p class="card-price">${formatKsh(price)}</p>
+                            <p class="card-area">${meal.strArea}</p>
+                        </div>
+                    </div>
+                `;
+                mealGrid.appendChild(card);
+            });
+        }
+
+        function getIngredients(meal) {
+            let ingredients = [];
+            for (let i = 1; i <= 20; i++) {
+                const ing = meal[`strIngredient${i}`];
+                const measure = meal[`strMeasure${i}`];
+                if (ing && ing.trim() !== "") {
+                    ingredients.push(`${measure} ${ing}`);
+                }
+            }
+            return ingredients;
+        }
+
+        function openModal(meal) {
+            currentMeal = meal;
+            const price = calculatePrice(meal.idMeal);
+
+            document.getElementById('modalImg').src = meal.strMealThumb;
+            document.getElementById('modalTitle').innerText = meal.strMeal;
+            document.getElementById('modalPrice').innerText = formatKsh(price);
+            
+            const ingList = document.getElementById('modalIngredients');
+            ingList.innerHTML = '';
+            getIngredients(meal).forEach(ing => {
+                const li = document.createElement('li');
+                li.innerText = ing;
+                ingList.appendChild(li);
+            });
+
+            document.getElementById('modalInstructions').innerText = meal.strInstructions;
+
+            modalOverlay.classList.add('active');
+        }
+
+        function closeModal() {
+            modalOverlay.classList.remove('active');
+        }
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+
+        // 🚀 REAL M-PESA ORDER FUNCTION
+        async function orderMeal() {
+            if (!currentMeal) return;
+            const price = calculatePrice(currentMeal.idMeal);
+            
+            // Ask for the phone number 
+            let phone = prompt("Enter M-Pesa Phone Number (e.g., 254708374149):");
+            if (!phone) return;
+
+            // Ensure it starts with 254
+            if (!phone.startsWith("254")) {
+                alert("Please start the phone number with 254 (e.g., 254708374149)");
+                return;
+            }
+
+            const btn = document.querySelector('.order-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending Prompt...';
+            btn.disabled = true;
+
+            try {
+                // ⚠️ REPLACE WITH YOUR NGROK URL OR RENDER URL IF TESTING FROM PHONE
+                const BACKEND_URL = "http://localhost:5000/api/stkpush"; 
+
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: phone, amount: price })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert("📱 Success! Check your phone to enter your M-Pesa PIN.");
+                    closeModal();
+                } else {
+                    console.error(data);
+                    alert("Failed to initiate payment. Check your backend terminal for errors.");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Error connecting to payment server. Make sure your backend is running.");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        window.onload = () => {
+            performSearch();
+        };
+    </script>
+</body>
+</html>
+```
